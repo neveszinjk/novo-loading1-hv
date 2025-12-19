@@ -4,10 +4,6 @@ const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 
-// Ler o arquivo HTML
-const htmlPath = path.join(__dirname, 'havan_loading_novo.html');
-const htmlContent = fs.readFileSync(htmlPath, 'utf8');
-
 // Criar servidor
 const server = http.createServer((req, res) => {
   // CORS headers
@@ -15,17 +11,37 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Servir o HTML
-  if (req.url === '/' || req.url === '/havan_loading_novo.html') {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(htmlContent);
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('404 - Página não encontrada');
+  // Servir arquivos HTML
+  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  
+  // Se não tiver extensão, tenta adicionar .html
+  if (!path.extname(filePath)) {
+    filePath += '.html';
   }
+
+  // Validar que o arquivo está no diretório correto (segurança)
+  const realPath = path.resolve(filePath);
+  const baseDir = path.resolve(__dirname);
+  
+  if (!realPath.startsWith(baseDir)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('403 - Acesso negado');
+    return;
+  }
+
+  // Tentar ler o arquivo
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 - Página não encontrada');
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(data);
+  });
 });
 
 server.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
-  console.log(`Acesse: http://localhost:${PORT}/havan_loading_novo.html`);
 });
